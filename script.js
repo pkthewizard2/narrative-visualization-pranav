@@ -4,17 +4,18 @@ let data;
 d3.csv("goibibo_com-travel_sample.csv").then(loadedData => {
     data = loadedData; 
     updateScene(); 
+}).catch(error => {
+    console.error("Error loading the data:", error); 
 });
 
 function updateScene() {
-    switch(currentScene) {
-        case 0:
-            createBarChart(data);
-            break;
-        case 1:
-            createScatterPlot(data);
-            break;
-    }
+    const scenes = [
+        () => createBarChart(data),
+        () => createScatterPlot(data),
+        () => createHistogram(data)
+    ];
+    d3.selectAll('.scene').style('display', 'none');
+    scenes[currentScene](); 
 }
 
 function createBarChart(data) {
@@ -134,11 +135,73 @@ function createScatterPlot(data) {
         .attr("fill", "#ff6347");
 }
 
+function createHistogram(data) {
+    const scene = d3.select("#histogram");
+    scene.html(''); 
+    scene.style('display', 'block');
+    d3.select("#barChart").style('display', 'none');
+    d3.select("#scatterPlot").style('display', 'none');
 
+    const margin = {top: 40, right: 20, bottom: 70, left: 70},
+          width = 960 - margin.left - margin.right,
+          height = 500 - margin.top - margin.bottom;
+
+    const svg = scene.append('svg')
+        .attr('width', width + margin.left + margin.right)
+        .attr('height', height + margin.top + margin.bottom)
+      .append('g')
+        .attr('transform', `translate(${margin.left},${margin.top})`);
+
+    const x = d3.scaleLinear()
+        .domain([0, 5]) 
+        .range([0, width]);
+
+    const bins = d3.histogram()
+        .domain(x.domain())
+        .thresholds(x.ticks(20)) 
+        (data.map(d => d.rating));
+
+    const y = d3.scaleLinear()
+        .domain([0, d3.max(bins, d => d.length)])
+        .range([height, 0]);
+
+    svg.append('g')
+        .attr('transform', `translate(0,${height})`)
+        .call(d3.axisBottom(x));
+
+    svg.append('g')
+        .call(d3.axisLeft(y));
+
+    const bar = svg.selectAll(".bar")
+        .data(bins)
+      .enter().append("g")
+        .attr("class", "bar")
+        .attr("transform", d => `translate(${x(d.x0)},${y(d.length)})`);
+
+    bar.append("rect")
+        .attr("x", 1)
+        .attr("width", x(bins[0].x1) - x(bins[0].x0) - 1)
+        .attr("height", d => height - y(d.length))
+        .attr("fill", "#6a5acd");
+
+    bar.append("text")
+        .text(d => d.length)
+        .attr("dy", "1.5em")
+        .attr("dx", "0.5em")
+        .attr("font-size", "12px")
+        .attr("fill", "white");
+
+    svg.append("text")
+        .attr("x", (width / 2))             
+        .attr("y", 0 - (margin.top / 2))
+        .attr("text-anchor", "middle")  
+        .style("font-size", "20px") 
+        .text("Distribution of Hotel Ratings");
+}
 
 
 
 document.getElementById("nextButton").addEventListener("click", function() {
-    currentScene = (currentScene + 1) % 2; 
+    currentScene = (currentScene + 1) % 3; 
     updateScene();
 });
