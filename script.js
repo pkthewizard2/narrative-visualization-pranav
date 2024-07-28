@@ -23,6 +23,7 @@ function createBarChart(data) {
     scene.html(''); 
     scene.style('display', 'block');
     d3.select("#scatterPlot").style('display', 'none');
+    d3.select("#histogram").style('display', 'none');
 
     const margin = {top: 40, right: 20, bottom: 100, left: 100},
           width = 960 - margin.left - margin.right,
@@ -47,26 +48,7 @@ function createBarChart(data) {
         .attr('transform', `translate(0,${height})`)
         .call(d3.axisBottom(x));
 
-    svg.append("text")
-        .attr("text-anchor", "middle")
-        .attr("transform", `translate(${width / 2}, ${height + margin.bottom - 20})`)
-        .text("Number of Hotels");
-
-    svg.append("text")
-        .attr("text-anchor", "middle")
-        .attr("transform", "rotate(-90)")
-        .attr("y", -margin.left + 40)
-        .attr("x", -(height / 2))
-        .text("City");
-
-    svg.append("text")
-        .attr("x", (width / 2))             
-        .attr("y", 0 - (margin.top / 2))
-        .attr("text-anchor", "middle")  
-        .style("font-size", "20px") 
-        .text("Number of Hotels by City");
-
-    svg.selectAll(".bar")
+    const bars = svg.selectAll(".bar")
         .data(hotelsByCity)
       .enter().append("rect")
         .attr("class", "bar")
@@ -75,8 +57,10 @@ function createBarChart(data) {
         .attr("x", 0)
         .attr("width", d => x(d[1]))
         .attr("fill", "#4CAF50");
-}
 
+    bars.append("title")
+        .text(d => `City: ${d[0]} \nHotels: ${d[1]}`);
+}
 function createScatterPlot(data) {
     const scene = d3.select("#scatterPlot");
     scene.html(''); // Clear previous SVG elements
