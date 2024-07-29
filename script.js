@@ -1,26 +1,27 @@
 let currentScene = 0;
 let data;
+let minHotels = 0;
 
 d3.csv("goibibo_com-travel_sample.csv").then(loadedData => {
-    data = loadedData; 
-    updateScene(); 
+    data = loadedData;
+    updateScene();
 }).catch(error => {
-    console.error("Error loading the data:", error); 
+    console.error("Error loading the data:", error);
 });
 
 function updateScene() {
     const scenes = [
-        () => createBarChart(data),
+        () => createBarChart(data, minHotels),
         () => createScatterPlot(data),
         () => createHistogram(data)
     ];
     d3.selectAll('.scene').style('display', 'none');
-    scenes[currentScene](); 
+    scenes[currentScene]();
 }
 
-function createBarChart(data) {
+function createBarChart(data, minHotels) {
     const scene = d3.select("#barChart");
-    scene.html(''); 
+    scene.html('');
     scene.style('display', 'block');
     d3.select("#scatterPlot").style('display', 'none');
     d3.select("#histogram").style('display', 'none');
@@ -38,9 +39,12 @@ function createBarChart(data) {
     const y = d3.scaleBand().range([height, 0]).padding(0.1),
           x = d3.scaleLinear().range([0, width]);
 
-    const hotelsByCity = d3.rollups(data, v => v.length, d => d.city).sort((a, b) => b[1] - a[1]);
-    y.domain(hotelsByCity.map(d => d[0]));
-    x.domain([0, d3.max(hotelsByCity, d => d[1])]);
+    const filteredData = d3.rollups(data, v => v.length, d => d.city)
+        .filter(d => d[1] >= minHotels)
+        .sort((a, b) => b[1] - a[1]);
+
+    y.domain(filteredData.map(d => d[0]));
+    x.domain([0, d3.max(filteredData, d => d[1])]);
 
     svg.append('g')
         .call(d3.axisLeft(y));
@@ -49,7 +53,7 @@ function createBarChart(data) {
         .call(d3.axisBottom(x));
 
     const bars = svg.selectAll(".bar")
-        .data(hotelsByCity)
+        .data(filteredData)
       .enter().append("rect")
         .attr("class", "bar")
         .attr("y", d => y(d[0]))
@@ -60,18 +64,39 @@ function createBarChart(data) {
 
     bars.append("title")
         .text(d => `City: ${d[0]} \nHotels: ${d[1]}`);
+
+    svg.append("text")
+        .attr("x", (width / 2))             
+        .attr("y", 0 - (margin.top / 2))
+        .attr("text-anchor", "middle")  
+        .style("font-size", "20px") 
+        .text("Number of Hotels by City");
+
+    svg.append("text")
+        .attr("text-anchor", "middle")
+        .attr("transform", `translate(${width / 2}, ${height + margin.bottom - 20})`)
+        .text("Number of Hotels");
+
+    svg.append("text")
+        .attr("text-anchor", "middle")
+        .attr("transform", "rotate(-90)")
+        .attr("y", -margin.left + 40)
+        .attr("x", -(height / 2))
+        .text("City");
 }
+
 function createScatterPlot(data) {
-    const scene = d3.select("#scatterPlot");
-    scene.html(''); // Clear previous SVG elements
-    scene.style('display', 'block');
+    const s = d3.select("#scatterPlot");
+    s.html('');
+    s.style('display', 'block');
     d3.select("#barChart").style('display', 'none');
+    d3.select("#histogram").style('display', 'none');
 
     const margin = {top: 40, right: 20, bottom: 70, left: 70},
           width = 960 - margin.left - margin.right,
           height = 500 - margin.top - margin.bottom;
 
-    const svg = scene.append('svg')
+    const svg = s.append('svg')
         .attr('width', width + margin.left + margin.right)
         .attr('height', height + margin.top + margin.bottom)
       .append('g')
@@ -121,7 +146,7 @@ function createScatterPlot(data) {
 
 function createHistogram(data) {
     const scene = d3.select("#histogram");
-    scene.html(''); 
+    scene.html('');
     scene.style('display', 'block');
     d3.select("#barChart").style('display', 'none');
     d3.select("#scatterPlot").style('display', 'none');
@@ -137,12 +162,12 @@ function createHistogram(data) {
         .attr('transform', `translate(${margin.left},${margin.top})`);
 
     const x = d3.scaleLinear()
-        .domain([0, 5]) 
+        .domain([0, 5])
         .range([0, width]);
 
     const bins = d3.histogram()
         .domain(x.domain())
-        .thresholds(x.ticks(20)) 
+        .thresholds(x.ticks(20))
         (data.map(d => d.rating));
 
     const y = d3.scaleLinear()
@@ -176,16 +201,26 @@ function createHistogram(data) {
         .attr("fill", "white");
 
     svg.append("text")
-        .attr("x", (width / 2))             
+        .attr("x", (width / 2))
         .attr("y", 0 - (margin.top / 2))
-        .attr("text-anchor", "middle")  
-        .style("font-size", "20px") 
+        .attr("text-anchor", "middle")
+        .style("font-size", "20px")
         .text("Distribution of Hotel Ratings");
+
+    svg.append("text")
+        .attr("text-anchor", "middle")
+        .attr("transform", `translate(${width / 2}, ${height + margin.bottom - 20})`)
+        .text("Rating");
+
+    svg.append("text")
+        .attr("text-anchor", "middle")
+        .attr("transform", "rotate(-90)")
+        .attr("y", -margin.left + 20)
+        .attr("x", -(height / 2))
+        .text("Number of Hotels");
 }
 
-
-
 document.getElementById("nextButton").addEventListener("click", function() {
-    currentScene = (currentScene + 1) % 3; 
+    currentScene = (currentScene + 1) % 3;
     updateScene();
 });

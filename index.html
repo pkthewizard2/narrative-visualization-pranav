@@ -15,10 +15,12 @@
             width: 90%;
             margin: 20px auto;
         }
-        button {
+        button, input[type=range] {
             padding: 10px 20px;
             margin: 10px;
             font-size: 16px;
+        }
+        button {
             background-color: #4CAF50;
             color: white;
             border: none;
@@ -31,6 +33,9 @@
 </head>
 <body>
     <h1>Indian Hotels Visualization</h1>
+    <label for="minHotels">Minimum Number of Hotels:</label>
+    <input type="range" id="minHotels" name="minHotels" min="0" max="100" value="0" step="1">
+    <span id="minHotelsValue">0</span>
     <div id="barChart" class="scene"></div>
     <div id="scatterPlot" class="scene"></div>
     <div id="histogram" class="scene"></div>
